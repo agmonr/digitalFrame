@@ -63,7 +63,7 @@ DigitalFrame operates as a distributed system of specialized services, ensuring 
 ## 📦 Installation & Setup
 
 ### Prerequisites
-- **Hardware:** Raspberry Pi (3, 4, or 5) with a connected display and Pi Camera module.
+- **Hardware:** Raspberry Pi (3, 4, or 5) with a connected display and Pi Camera module (optinal).
 - **OS:** Raspberry Pi OS (Lite recommended) with Framebuffer support.
 - **Dependencies:** `python3-venv`, `libopenjp2-7`, `libtiff6`.
 
