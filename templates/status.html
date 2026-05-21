@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>System Status - Digital Frame</title>
+    <style>
+        body { font-family: sans-serif; background: #f4f7f6; margin: 0; padding: 20px; color: #333; }
+        .container { max-width: 800px; margin: 0 auto; background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        .card { background: #fff; padding: 20px; border-radius: 8px; border: 1px solid #ddd; margin-bottom: 20px; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; }
+        .stat-value { font-size: 24px; font-weight: bold; color: #3498db; }
+        nav { margin-bottom: 20px; }
+        nav a { margin-right: 20px; color: #3498db; text-decoration: none; font-weight: bold; }
+    </style>
+</head>
+<body>
+{% include "nav.html" %}
+    <div class="container">
+        
+        <h1>System Status</h1>
+        <div class="grid">
+            <div class="card">
+                <h3>CPU Temperature</h3>
+                <div id="cpu-temp" class="stat-value">-- °C</div>
+            </div>
+            <div class="card">
+                <h3>Memory Usage</h3>
+                <div id="mem-usage" class="stat-value">-- %</div>
+                <div id="mem-info">-- MB used / -- MB total</div>
+            </div>
+        </div>
+
+        <h3>Disk Usage</h3>
+        <div id="disk-list" class="grid">
+            <!-- Partitions will be injected here -->
+        </div>
+    </div>
+
+    <script>
+        async function fetchStatus() {
+            try {
+                const response = await fetch('/api/system/status');
+                const data = await response.json();
+                
+                document.getElementById('cpu-temp').textContent = data.cpu_temp ? data.cpu_temp.toFixed(1) + ' °C' : 'N/A';
+                document.getElementById('mem-usage').textContent = data.memory.percent.toFixed(1) + ' %';
+                document.getElementById('mem-info').textContent = `${data.memory.used} MB used / ${data.memory.total} MB total`;
+                
+                const diskList = document.getElementById('disk-list');
+                diskList.innerHTML = '';
+                data.disk.forEach(d => {
+                    const card = document.createElement('div');
+                    card.className = 'card';
+                    card.innerHTML = `
+                        <h4>${d.mountpoint} (${d.device})</h4>
+                        <div class="stat-value">${d.percent.toFixed(1)} %</div>
+                        <div>${d.used} GB / ${d.total} GB</div>
+                    `;
+                    diskList.appendChild(card);
+                });
+            } catch (e) {
+                console.error("Failed to fetch system status", e);
+            }
+        }
+        setInterval(fetchStatus, 5000);
+        fetchStatus();
+    </script>
+</body>
+</html>

@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Digital Frame - Full Screen</title>
+    <style>
+        body, html { margin: 0; padding: 0; width: 100%; height: 100%; background: black; overflow: hidden; display: flex; align-items: center; justify-content: center; }
+        img { max-width: 100%; max-height: 100%; object-fit: contain; }
+        .clock { color: white; font-family: sans-serif; font-size: 10vw; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <div id="content">
+        <img id="current-img" src="" alt="Current Image" style="display: none;">
+        <div id="clock-display" class="clock" style="display: none;"></div>
+    </div>
+
+    <script>
+        let lastImage = "";
+        let lastType = "";
+
+        function updateClock() {
+            const now = new Date();
+            const clock = document.getElementById('clock-display');
+            clock.innerText = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        }
+
+        // Anti-burn-in animation parameters
+        const Rx = 20; // Radius X in pixels
+        const Ry = 20; // Radius Y in pixels
+        const omega = 0.2; // Angular frequency (rad/s)
+
+        function animateBurnIn(timestamp) {
+            const clock = document.getElementById('clock-display');
+            if (clock.style.display !== "none") {
+                const t = timestamp / 1000; // Convert to seconds
+                const dx = Rx * Math.cos(omega * t);
+                const dy = Ry * Math.sin(omega * t);
+                clock.style.transform = `translate(${dx}px, ${dy}px)`;
+            }
+            requestAnimationFrame(animateBurnIn);
+        }
+
+        async function updateImage() {
+            try {
+                const response = await fetch('/api/state');
+                const state = await response.json();
+                
+                const img = document.getElementById('current-img');
+                const clock = document.getElementById('clock-display');
+
+                if (state.type === "clock") {
+                    updateClock();
+                    if (lastType !== "clock") {
+                        img.style.display = "none";
+                        clock.style.display = "block";
+                        lastType = "clock";
+                        lastImage = "";
+                    }
+                } else if (state.current_image) {
+                    if (state.current_image !== lastImage) {
+                        img.src = '/api/image/' + state.current_image + '?t=' + Date.now();
+                        img.style.display = "block";
+                        clock.style.display = "none";
+                        lastType = "image";
+                        lastImage = state.current_image;
+                    }
+                }
+            } catch (err) {
+                console.error("Error fetching state", err);
+            }
+        }
+
+        setInterval(updateImage, 2000);
+        setInterval(updateClock, 60000);
+        updateImage();
+        requestAnimationFrame(animateBurnIn);
+    </script>
+</body>
+</html>

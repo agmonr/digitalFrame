@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Network Settings - Digital Frame Manager</title>
+    <style>
+        body { font-family: sans-serif; background: #f4f7f6; margin: 0; padding: 20px; color: #333; }
+        .container { max-width: 800px; margin: 0 auto; background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        nav { margin-bottom: 20px; }
+        nav a { margin-right: 20px; color: #3498db; text-decoration: none; font-weight: bold; }
+        .info-card { background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); margin-top: 20px; border-top: 5px solid #3498db; }
+        ul { list-style: none; padding: 0; }
+        li { padding: 10px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; }
+        button, .btn { 
+            padding: 8px 12px; 
+            border: none; 
+            border-radius: 4px; 
+            cursor: pointer; 
+            color: white; 
+            background: #3498db;
+            transition: all 0.1s ease;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+        button:hover, .btn:hover { background: #2980b9; transform: translateY(-1px); box-shadow: 0 4px 6px rgba(0,0,0,0.2); }
+        button:active, .btn:active { transform: translateY(1px); box-shadow: 0 1px 2px rgba(0,0,0,0.2); }        input { padding: 8px; width: 200px; }
+    </style>
+</head>
+<body>
+{% include "nav.html" %}
+    <div class="container">
+        
+        
+        <h1>Network Settings</h1>
+        
+        <div class="info-card">
+            <h3>Connection Status</h3>
+            <p>Current Network: <strong id="current-ssid">Loading...</strong></p>
+        </div>
+
+        <div class="info-card">
+            <h3>Available WiFi Networks</h3>
+            <button onclick="scanWiFi()">Scan Networks</button>
+            <ul id="wifi-list"></ul>
+        </div>
+    </div>
+    <script>
+        async function updateStatus() {
+            try {
+                const res = await fetch("/api/network/status");
+                const data = await res.json();
+                document.getElementById('current-ssid').innerText = data.ssid;
+            } catch (e) {
+                document.getElementById('current-ssid').innerText = "Unknown";
+            }
+        }
+        
+        updateStatus();
+
+        async function scanWiFi() {
+            const list = document.getElementById('wifi-list');
+            list.innerHTML = '<li>Scanning...</li>';
+            try {
+                const res = await fetch("/api/network/scan");
+                const data = await res.json();
+                list.innerHTML = '';
+                data.networks.forEach(network => {
+                    const li = document.createElement('li');
+                    li.innerHTML = `
+                        <span>${network.ssid}</span>
+                        <div>
+                            <input type="password" id="pass-${network.ssid}" placeholder="Password">
+                            <button class="btn" onclick="connect('${network.ssid}')">Connect</button>
+                        </div>
+                    `;
+                    list.appendChild(li);
+                });
+            } catch (e) {
+                list.innerHTML = '<li>Error scanning networks.</li>';
+            }
+        }
+
+        async function connect(ssid) {
+            const password = document.getElementById(`pass-${ssid}`).value;
+            try {
+                const res = await fetch("/api/network/wifi", {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ssid, password})
+                });
+                const data = await res.json();
+                if (data.status === 'success') {
+                    updateStatus();
+                } else {
+                    alert('Error: ' + data.error);
+                }
+            } catch (e) {
+                alert('Connection request failed');
+            }
+        }
+    </script>
+</body>
+</html>

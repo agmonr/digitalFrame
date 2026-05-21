@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Image History</title>
+    <style>
+        * { box-sizing: border-box; }
+        body { font-family: sans-serif; background: #f4f7f6; margin: 0; padding: 20px; color: #333; }
+        .container { max-width: 1000px; margin: 0 auto; display: grid; grid-template-columns: 350px 1fr; gap: 20px; }
+        
+        @media (max-width: 850px) {
+            body { padding: 10px; }
+            .container { grid-template-columns: 1fr; }
+            .history-list { height: 300px; margin-bottom: 20px; }
+            .preview-pane { width: 100%; }
+            .img-preview { max-height: 50vh; }
+            nav { display: flex; flex-wrap: wrap; gap: 5px; }
+            nav a { margin-right: 10px; font-size: 14px; }
+            h1 { font-size: 22px; }
+        }
+        
+        .history-list { background: white; padding: 15px; border-radius: 12px; height: 80vh; overflow-y: auto; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        .preview-pane { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); text-align: center; }
+        .history-item { padding: 12px; border-bottom: 1px solid #eee; cursor: pointer; display: flex; justify-content: space-between; align-items: center; }
+        .history-item:hover { background: #f9f9f9; }
+        .history-item.active { background: #e8f4f8; border-left: 4px solid #3498db; }
+        .timestamp { font-size: 11px; color: #7f8c8d; }
+        .img-preview { width: 100%; max-height: 65vh; object-fit: contain; background: #000; border-radius: 8px; margin-bottom: 20px; display: block; }
+        button { border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer; color: white; font-weight: bold; width: 100%; max-width: 250px; }
+        button.remove { background: #e74c3c; }
+        button.remove:hover { background: #c0392b; }
+        nav { margin-bottom: 20px; }
+        nav a { margin-right: 20px; color: #3498db; text-decoration: none; font-weight: bold; }
+    </style>
+</head>
+<body>
+{% include "nav.html" %}
+    <div style="max-width: 1000px; margin: 0 auto;">
+        
+        
+        <h1>Image History</h1>
+        
+        <div class="container">
+            <div class="history-list" id="history-list">
+                <!-- Items will be injected here -->
+            </div>
+            
+            <div class="preview-pane" id="preview-section">
+                <h3>Preview</h3>
+                <div id="preview-filename" style="margin-bottom: 15px; font-weight: bold; word-break: break-all;">Select an image from the list</div>
+                <img id="preview-img" class="img-preview" src="" style="display: none;">
+                <div id="preview-controls" style="display: none;">
+                    <button class="remove" onclick="removeSelected()">Remove Image</button>
+                    <p style="font-size: 12px; color: #7f8c8d; margin-top: 10px;">This will move the image to /home/ram/removed/</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_HOST = "http://" + window.location.hostname + ":5001";
+        const API_BASE = API_HOST + "/api";
+        let selectedFilename = null;
+
+        async function checkCameraVisibility() {
+            try {
+                const configRes = await fetch(`${API_BASE}/config`);
+                const config = await configRes.json();
+                if (config.CAMERA && config.CAMERA.enabled === 'True') {
+                    document.getElementById('nav-camera').style.display = 'inline';
+                }
+            } catch (e) {
+                console.error("Error checking camera visibility", e);
+            }
+        }
+
+        async function loadHistory() {
+            try {
+                const response = await fetch(`${API_HOST}/api/history`);
+                const history = await response.json();
+                const list = document.getElementById('history-list');
+                list.innerHTML = '';
+                
+                if (history.length === 0) {
+                    list.innerHTML = '<div style="text-align:center; padding: 20px; color: #7f8c8d;">No history available</div>';
+                    return;
+                }
+                
+                history.forEach(item => {
+                    const div = document.createElement('div');
+                    div.className = 'history-item';
+                    div.onclick = () => selectImage(item.name, div);
+                    
+                    const nameSpan = document.createElement('span');
+                    nameSpan.textContent = item.name;
+                    nameSpan.style.fontSize = '13px';
+                    nameSpan.style.overflow = 'hidden';
+                    nameSpan.style.textOverflow = 'ellipsis';
+                    nameSpan.style.whiteSpace = 'nowrap';
+                    nameSpan.style.paddingRight = '10px';
+                    
+                    const timeSpan = document.createElement('span');
+                    const date = new Date(item.timestamp);
+                    timeSpan.className = 'timestamp';
+                    timeSpan.textContent = date.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+                    timeSpan.style.flexShrink = '0';
+                    
+                    div.appendChild(nameSpan);
+                    div.appendChild(timeSpan);
+                    list.appendChild(div);
+                });
+            } catch (e) {
+                console.error("Error loading history", e);
+            }
+        }
+
+        function selectImage(filename, element) {
+            selectedFilename = filename;
+            
+            // UI updates
+            document.querySelectorAll('.history-item').forEach(i => i.classList.remove('active'));
+            element.classList.add('active');
+            
+            document.getElementById('preview-filename').textContent = filename;
+            const img = document.getElementById('preview-img');
+            img.src = `${API_HOST}/api/image/${filename}`;
+            img.style.display = 'block';
+            document.getElementById('preview-controls').style.display = 'block';
+            
+            // Scroll to preview on mobile
+            if (window.innerWidth <= 850) {
+                document.getElementById('preview-section').scrollIntoView({ behavior: 'smooth' });
+            }
+        }
+
+        async function removeSelected() {
+            if (!selectedFilename) return;
+            
+            try {
+                const response = await fetch(`${API_HOST}/api/remove`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ filename: selectedFilename })
+                });
+                
+                // Silent removal feedback
+                document.getElementById('preview-img').style.display = 'none';
+                document.getElementById('preview-controls').style.display = 'none';
+                document.getElementById('preview-filename').textContent = "Image removed";
+                loadHistory(); // Refresh list
+            } catch (e) {
+                console.error("Error moving file", e);
+            }
+        }
+
+        loadHistory();
+        checkCameraVisibility();
+    </script>
+</body>
+</html>

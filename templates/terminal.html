@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Terminal - Digital Frame</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/xterm@5.3.0/css/xterm.css" />
+    <style>
+        body { background: #0c0c0c; color: #fff; margin: 0; padding: 0; font-family: sans-serif; height: 100vh; display: flex; flex-direction: column; }
+        .container { flex-grow: 1; display: flex; flex-direction: column; padding: 20px; box-sizing: border-box; }
+        #terminal { flex-grow: 1; margin-top: 10px; background: #1e1e1e; border-radius: 4px; overflow: hidden; }
+        h1 { color: #2ecc71; margin: 0; font-size: 24px; }
+        .help-text { color: #7f8c8d; font-size: 14px; margin-bottom: 10px; }
+    </style>
+</head>
+<body>
+    {% include "nav.html" %}
+    <div class="container">
+        <h1>Interactive System Terminal</h1>
+        <div class="help-text">Fully interactive shell with 256-color support. Run <code>mc</code>, <code>nc</code>, etc.</div>
+        <div id="terminal"></div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/xterm@5.3.0/lib/xterm.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xterm-addon-fit@0.8.0/lib/xterm-addon-fit.js"></script>
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <script>
+        // Initialize Terminal
+        const term = new Terminal({
+            cursorBlink: true,
+            theme: { background: '#1e1e1e', foreground: '#00ff00' },
+            fontFamily: 'Courier New, Courier, monospace',
+            fontSize: 14,
+            allowProposedApi: true
+        });
+
+        const fitAddon = new FitAddon.FitAddon();
+        term.loadAddon(fitAddon);
+        term.open(document.getElementById('terminal'));
+        
+        // Initial fit
+        setTimeout(() => fitAddon.fit(), 100);
+
+        // Connect to the PTY namespace
+        const socket = io('/pty', { 
+            path: '/socket.io',
+            transports: ['websocket', 'polling'] 
+        });
+
+        socket.on('connect', () => {
+            term.write('\r\n*** Connected to Backend Shell ***\r\n');
+            socket.emit('resize', { cols: term.cols, rows: term.rows });
+        });
+
+        socket.on('output', (data) => {
+            term.write(data.data);
+        });
+
+        socket.on('disconnect', () => {
+            term.write('\r\n*** Disconnected ***\r\n');
+        });
+
+        socket.on('connect_error', (err) => {
+            term.write('\r\n*** Connection Error: ' + err.message + ' ***\r\n');
+        });
+
+        // Forward keystrokes
+        term.onData((data) => {
+            socket.emit('input', { input: data });
+        });
+
+        // Handle resizing
+        window.addEventListener('resize', () => {
+            fitAddon.fit();
+            socket.emit('resize', { cols: term.cols, rows: term.rows });
+        });
+        
+        // Auto-focus
+        term.focus();
+        document.getElementById('terminal').addEventListener('click', () => term.focus());
+    </script>
+</body>
+</html>
