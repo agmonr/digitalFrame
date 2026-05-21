@@ -1,0 +1,7 @@
+*.log
+*.json
+*.tmp
+logs/*
+config.ini
+__pycache__/
+venv/*
