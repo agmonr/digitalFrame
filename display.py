@@ -128,7 +128,7 @@ def update_state(type="image", img_path=None):
     try:
         state = {
             "type": type,
-            "current_image": os.path.basename(img_path) if img_path else "Clock",
+            "current_image": os.path.basename(img_path) if img_path else ("Clock" if type == "clock" else "Idle"),
             "full_path": img_path if img_path else "",
             "last_update": datetime.now().isoformat(),
             "pid": os.getpid()
@@ -322,7 +322,7 @@ def display_image(fb, img_path, save=True):
         update_history(img_path, save=save)
     except Exception as e:
         logger.error(f"Error displaying {img_path}: {e}")
-def display_hourly_clock(fb, current_image=None):
+def display_hourly_clock(fb, current_image=None, img_path=None):
     try:
         if current_image:
             bg = current_image.copy()
@@ -332,7 +332,7 @@ def display_hourly_clock(fb, current_image=None):
         # Use global standard properties
         draw_time(bg, TIME_FORMAT, TIME_FONT_SIZE, location=TIME_LOCATION, color=TIME_COLOR, border_color=TIME_BORDER_COLOR, border_size=TIME_BORDER_SIZE)
         write_to_fb(fb, bg)
-        update_state("clock")
+        update_state("clock", img_path)
     except Exception as e:
         logger.error(f"Error displaying hourly clock: {e}")
 
@@ -564,14 +564,14 @@ def main():
                     logger.info(f"Displaying hourly clock at {now.hour}:00")
                     start_time = time.time()
                     while time.time() - start_time < 10:
-                        display_hourly_clock(fb, current_image_obj)
+                        display_hourly_clock(fb, current_image_obj, images[idx] if images and idx < len(images) else None)
                         time.sleep(0.05)
                     last_display_time = 0 # Force image refresh after 10s clock
                     continue
 
                 if is_periodic or is_scheduled:
                     was_periodic = True
-                    display_hourly_clock(fb, current_image_obj)
+                    display_hourly_clock(fb, current_image_obj, images[idx] if images and idx < len(images) else None)
                     time.sleep(0.05) # ~20 FPS for smooth anti-burn-in movement
                     continue # Stay in clock mode
 
@@ -587,7 +587,23 @@ def main():
                     images_shown_in_group += 1
                     # If we've shown enough images in this group, pick a new random starting point
                     if images_shown_in_group >= GROUP_SIZE:
-                        idx = random.randint(0, len(images) - 1)
+                        # Try up to 5 times to find an image not shown in the last 24 hours
+                        recent_history = []
+                        if os.path.exists(HISTORY_FILE):
+                            try:
+                                with open(HISTORY_FILE, "r") as f:
+                                    full_history = json.load(f)
+                                cutoff = datetime.now().timestamp() - 86400
+                                recent_history = [e["name"] for e in full_history if datetime.fromisoformat(e["timestamp"]).timestamp() > cutoff]
+                            except: pass
+
+                        for _ in range(5):
+                            new_idx = random.randint(0, len(images) - 1)
+                            if os.path.basename(images[new_idx]) not in recent_history:
+                                idx = new_idx
+                                break
+                            idx = new_idx # Fallback to the last tried if all 5 are recent
+                        
                         images_shown_in_group = 0
                     else:
                         # Otherwise, just cycle to the next image
