@@ -152,8 +152,8 @@ def update_history(img_path, save=True):
                 try: history = json.load(f)
                 except: history = []
         history.append(entry)
-        cutoff = now.timestamp() - (24 * 3600)
-        history = [e for e in history if datetime.fromisoformat(e["timestamp"]).timestamp() > cutoff]
+        if len(history) > 3600:
+            history = history[-3600:]
         with open(HISTORY_FILE, "w") as f:
             json.dump(history, f)
     except Exception as e:
