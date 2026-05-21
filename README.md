@@ -4,6 +4,9 @@
 
 Built with a focus on **system integrity** and **smooth aesthetics**, DigitalFrame ensures your hardware is utilized efficiently while providing a beautiful, non-distracting addition to your living space.
 
+[<img src="images/IMG-20260521-WA0001.jpg" width="400">](https://github.com/agmonr/digitalFrame/)
+[<img src="images/Screenshot_20260521_073628_Firefox.jpg" width="400">](https://github.com/agmonr/digitalFrame/)
+
 ---
 
 ## 🚀 Key Features & Highlights
