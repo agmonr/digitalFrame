@@ -63,7 +63,7 @@ DigitalFrame operates as a distributed system of specialized services, ensuring 
 ## 📦 Installation & Setup
 
 ### Prerequisites
-- **Hardware:** Raspberry Pi (3, 4, or 5) with a connected display and Pi Camera module (optinal).
+- **Hardware:** Raspberry Pi (3, 4, 5 or zero2) with a connected display and Pi Camera module (optinal).
 - **OS:** Raspberry Pi OS (Lite recommended) with Framebuffer support.
 - **Dependencies:** `python3-venv`, `libopenjp2-7`, `libtiff6`.
 
@@ -85,7 +85,7 @@ DigitalFrame operates as a distributed system of specialized services, ensuring 
    Edit `config.ini` to set your image directories and preferences:
    ```ini
    [DEFAULT]
-   imagedir = /home/ram/photos/pictures/
+   imagedir = /home/photos/pictures/
    interval = 60
    screenoffhour = 00
    screenonhour = 6
