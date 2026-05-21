@@ -427,6 +427,7 @@ def main():
     config_mtime = last_config_mtime
     dir_mtime = os.path.getmtime(IMAGE_DIR)
     was_periodic = False
+    manual_prev = False
 
     with open(FB_DEV, "wb") as fb:
         while True:
@@ -480,12 +481,14 @@ def main():
             # Check for navigation commands (Move here for better responsiveness)
             if os.path.exists("next_image.tmp"):
                 os.remove("next_image.tmp")
+                manual_prev = False
                 if images:
                     idx = (idx + 1) % len(images)
                     display_image(fb, images[idx], save=True)
                     last_display_time = time.time()
             elif os.path.exists("prev_image.tmp"):
                 os.remove("prev_image.tmp")
+                manual_prev = True
                 if images:
                     # Try to use history to find the previous image
                     navigated = False
@@ -584,30 +587,36 @@ def main():
                 # Time for NEXT image
                 should_refresh = True
                 if images:
-                    images_shown_in_group += 1
-                    # If we've shown enough images in this group, pick a new random starting point
-                    if images_shown_in_group >= GROUP_SIZE:
-                        # Try up to 5 times to find an image not shown in the last 24 hours
-                        recent_history = []
-                        if os.path.exists(HISTORY_FILE):
-                            try:
-                                with open(HISTORY_FILE, "r") as f:
-                                    full_history = json.load(f)
-                                cutoff = datetime.now().timestamp() - 86400
-                                recent_history = [e["name"] for e in full_history if datetime.fromisoformat(e["timestamp"]).timestamp() > cutoff]
-                            except: pass
-
-                        for _ in range(5):
-                            new_idx = random.randint(0, len(images) - 1)
-                            if os.path.basename(images[new_idx]) not in recent_history:
-                                idx = new_idx
-                                break
-                            idx = new_idx # Fallback to the last tried if all 5 are recent
-                        
+                    if manual_prev:
+                        # User was navigating backwards, now move "back to top" (random image)
+                        idx = random.randint(0, len(images) - 1)
+                        manual_prev = False
                         images_shown_in_group = 0
                     else:
-                        # Otherwise, just cycle to the next image
-                        idx = (idx + 1) % len(images)
+                        images_shown_in_group += 1
+                        # If we've shown enough images in this group, pick a new random starting point
+                        if images_shown_in_group >= GROUP_SIZE:
+                            # Try up to 5 times to find an image not shown in the last 24 hours
+                            recent_history = []
+                            if os.path.exists(HISTORY_FILE):
+                                try:
+                                    with open(HISTORY_FILE, "r") as f:
+                                        full_history = json.load(f)
+                                    cutoff = datetime.now().timestamp() - 86400
+                                    recent_history = [e["name"] for e in full_history if datetime.fromisoformat(e["timestamp"]).timestamp() > cutoff]
+                                except: pass
+
+                            for _ in range(5):
+                                new_idx = random.randint(0, len(images) - 1)
+                                if os.path.basename(images[new_idx]) not in recent_history:
+                                    idx = new_idx
+                                    break
+                                idx = new_idx # Fallback to the last tried if all 5 are recent
+                            
+                            images_shown_in_group = 0
+                        else:
+                            # Otherwise, just cycle to the next image
+                            idx = (idx + 1) % len(images)
                 else:
                     idx = 0
             elif last_display_time == 0:
