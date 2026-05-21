@@ -74,7 +74,10 @@ TTYPath=/dev/tty1
 WantedBy=multi-user.target
 EOF
 
+[[ -f config.ini ]] && cp config.ini.example config.ini 
+
 # 6. Reload systemd, enable and start the service
+#
 systemctl daemon-reload
 systemctl enable $SERVICE_NAME
 systemctl restart $SERVICE_NAME
