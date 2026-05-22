@@ -12,18 +12,31 @@ def network_page():
 @app.route('/api/network/status', methods=['GET'])
 def get_status():
     try:
-        # Get current SSID
-        result = subprocess.run(['nmcli', '-t', '-f', 'ACTIVE,SSID', 'dev', 'wifi'], capture_output=True, text=True)
-        # Filter for active connections that are NOT the setup AP
-        active = []
-        for line in result.stdout.split('\n'):
-            if line.startswith('yes:'):
-                ssid = line.split(':')[1]
-                if ssid not in ['dframe', 'DigitalFrame_Setup']:
-                    active.append(ssid)
+        # Check active connections directly
+        con_res = subprocess.run(['nmcli', '-t', '-f', 'TYPE,NAME', 'con', 'show', '--active'], capture_output=True, text=True)
         
-        ssid = active[0] if active else "Not connected"
-        return jsonify({"ssid": ssid})
+        is_ap_active = False
+        actual_ssid = None
+        
+        for line in con_res.stdout.strip().split('\n'):
+            parts = line.split(':')
+            if len(parts) >= 2:
+                con_type = parts[0].strip()
+                con_name = parts[1].strip()
+                
+                if con_type in ['802-11-wireless', 'wifi']:
+                    if con_name in ['dframe', 'DigitalFrame_Setup']:
+                        is_ap_active = True
+                    else:
+                        actual_ssid = con_name
+                        break
+        
+        if actual_ssid:
+            return jsonify({"ssid": actual_ssid})
+        if is_ap_active:
+            return jsonify({"ssid": "Access Point"})
+            
+        return jsonify({"ssid": "Not connected"})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
