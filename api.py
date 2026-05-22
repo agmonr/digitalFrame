@@ -426,14 +426,15 @@ def get_config_api():
 def update_config():
     data = request.json
     config = get_config()
-    if 'DEFAULT' in data:
-        for key, value in data['DEFAULT'].items():
-            config.set('DEFAULT', key, str(value))
-    if 'CAMERA' in data:
-        if not config.has_section('CAMERA'):
-            config.add_section('CAMERA')
-        for key, value in data['CAMERA'].items():
-            config.set('CAMERA', key, str(value))
+    for section, section_data in data.items():
+        if section == 'DEFAULT':
+            for key, value in section_data.items():
+                config.set('DEFAULT', key, str(value))
+        else:
+            if not config.has_section(section):
+                config.add_section(section)
+            for key, value in section_data.items():
+                config.set(section, key, str(value))
 
     with open(CONFIG_FILE, 'w') as f:
         config.write(f)

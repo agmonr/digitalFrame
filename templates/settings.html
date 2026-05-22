@@ -38,6 +38,11 @@
         <div class="config-section">
             <h2>General Display</h2>
             <div class="form-group">
+                <label>Image Directory</label>
+                <input type="text" id="image-dir" placeholder="/home/ram/photos/pictures/">
+                <div class="info-text">Full path to the folder containing your photos.</div>
+            </div>
+            <div class="form-group">
                 <label>Interval (seconds)</label>
                 <input type="number" id="interval">
                 <div class="info-text">How long to show each image.</div>
@@ -176,6 +181,7 @@
                 const config = await response.json();
                 const defaults = config.DEFAULT;
                 
+                document.getElementById('image-dir').value = defaults.imagedir || '';
                 document.getElementById('interval').value = defaults.interval;
                 document.getElementById('group-size').value = defaults.groupsize;
                 document.getElementById('show-time').value = defaults.showtime.toLowerCase() === 'true' ? 'True' : 'False';
@@ -209,6 +215,7 @@
         async function saveConfig() {
             const data = {
                 DEFAULT: {
+                    imagedir: document.getElementById('image-dir').value,
                     interval: document.getElementById('interval').value,
                     groupsize: document.getElementById('group-size').value,
                     showtime: document.getElementById('show-time').value,

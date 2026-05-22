@@ -74,7 +74,11 @@ TTYPath=/dev/tty1
 WantedBy=multi-user.target
 EOF
 
-[[ -f config.ini ]] && cp config.ini.example config.ini 
+# Ensure config.ini exists
+if [ ! -f "$PROJECT_DIR/config.ini" ]; then
+    echo "Creating config.ini from example..."
+    cp "$PROJECT_DIR/config.ini.example" "$PROJECT_DIR/config.ini"
+fi 
 
 # 6. Reload systemd, enable and start the service
 #
