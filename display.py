@@ -145,16 +145,12 @@ def update_history(img_path, save=True):
         return
     try:
         now = datetime.now()
-        entry = {"name": os.path.basename(img_path), "path": img_path, "timestamp": now.isoformat()}
+        entry = {"name": os.path.basename(img_path), "timestamp": now.isoformat()}
         history = []
         if os.path.exists(HISTORY_FILE):
             with open(HISTORY_FILE, "r") as f:
                 try: history = json.load(f)
                 except: history = []
-        else:
-            with open(HISTORY_FILE, "w") as f:
-                json.dump([], f)
-        
         history.append(entry)
         if len(history) > 3600:
             history = history[-3600:]
@@ -500,16 +496,16 @@ def main():
                         if os.path.exists(HISTORY_FILE):
                             with open(HISTORY_FILE, "r") as f:
                                 history = json.load(f)
-                            current_path = images[idx]
+                            current_filename = os.path.basename(images[idx])
                             found_idx = -1
                             for i in range(len(history) - 1, -1, -1):
-                                if history[i].get("path") == current_path:
+                                if history[i]["name"] == current_filename:
                                     found_idx = i
                                     break
                             if found_idx > 0:
-                                prev_path = history[found_idx - 1].get("path")
+                                prev_filename = history[found_idx - 1]["name"]
                                 for i in range(len(images)):
-                                    if images[i] == prev_path:
+                                    if os.path.basename(images[i]) == prev_filename:
                                         idx = i
                                         navigated = True
                                         break
@@ -607,12 +603,12 @@ def main():
                                     with open(HISTORY_FILE, "r") as f:
                                         full_history = json.load(f)
                                     cutoff = datetime.now().timestamp() - 86400
-                                    recent_history = [e["path"] for e in full_history if datetime.fromisoformat(e["timestamp"]).timestamp() > cutoff]
+                                    recent_history = [e["name"] for e in full_history if datetime.fromisoformat(e["timestamp"]).timestamp() > cutoff]
                                 except: pass
 
                             for _ in range(5):
                                 new_idx = random.randint(0, len(images) - 1)
-                                if images[new_idx] not in recent_history:
+                                if os.path.basename(images[new_idx]) not in recent_history:
                                     idx = new_idx
                                     break
                                 idx = new_idx # Fallback to the last tried if all 5 are recent

@@ -42,3 +42,7 @@ video_resolution = 1024x768
 schedule = 0 0-6 * * *
 imagedir_captures = /home/captures/
 
+[NETWORK]
+ap_name = dframe
+ap_password = DigitalFrame
+

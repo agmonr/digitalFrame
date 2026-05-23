@@ -96,68 +96,35 @@ def configure_wifi():
             f.write(f"{time.strftime('%Y-%m-%d %H:%M:%S')} - {msg}\n")
         print(msg)
 
-    log(f"--- Starting connection attempt to SSID: {ssid} ---")
+    log(f"--- Starting connection attempt to SSID: {ssid} via wifi_setup.py ---")
 
     try:
-        ap_name, _ = get_config_network()
-        
         # 1. Kill DHCP and other setup processes
         log("Stopping DHCP server...")
         subprocess.run(['sudo', 'pkill', '-9', '-f', 'dnsmasq'], capture_output=True)
         
-        # 2. Delete setup connections
-        log(f"Deleting setup connections ({ap_name}, DigitalFrame_Setup)...")
-        subprocess.run(['sudo', 'nmcli', 'con', 'delete', ap_name], capture_output=True)
-        subprocess.run(['sudo', 'nmcli', 'con', 'delete', 'DigitalFrame_Setup'], capture_output=True)
+        # 2. Call wifi_setup.py with the new SSID and password
+        import sys
+        # Use the same python interpreter
+        cmd = [sys.executable, 'wifi_setup.py', '--ssid', ssid, '--password', password]
+        log(f"Running command: {' '.join(cmd)}")
         
-        # 3. Clear ANY existing connection with this SSID to prevent secret conflicts
-        log(f"Clearing existing profiles for {ssid}...")
-        subprocess.run(['sudo', 'nmcli', 'con', 'delete', 'id', ssid], capture_output=True)
+        result = subprocess.run(cmd, capture_output=True, text=True)
         
-        # 4. Wait for hardware to transition
-        log("Waiting 3 seconds for hardware to settle...")
-        time.sleep(3)
+        log(f"wifi_setup.py exit code: {result.returncode}")
+        # Only log stdout/stderr if they aren't too huge, but usually they are fine
+        if result.stdout:
+            log(f"wifi_setup.py stdout: {result.stdout.strip()}")
+        if result.stderr:
+            log(f"wifi_setup.py stderr: {result.stderr.strip()}")
 
-        # 5. Attempt connection using a more explicit method
-        log(f"Attempting to connect to {ssid}...")
-        # We use 'nmcli dev wifi connect' as it handles profile creation and activation in one go
-        # but we capture both stdout and stderr for the log
-        result = subprocess.run(['sudo', 'nmcli', 'dev', 'wifi', 'connect', ssid, 'password', password], 
-                                capture_output=True, text=True)
-        
-        log(f"nmcli exit code: {result.returncode}")
-        log(f"nmcli stdout: {result.stdout.strip()}")
-        log(f"nmcli stderr: {result.stderr.strip()}")
-
-        if result.returncode != 0:
-            # Check if secrets were the problem and try an alternative if needed
-            if "Secrets were required" in result.stderr or "secrets are required" in result.stderr:
-                log("Secrets error detected. Attempting alternative profile-first connection...")
-                # Delete and try manual add
-                subprocess.run(['sudo', 'nmcli', 'con', 'delete', 'id', ssid], capture_output=True)
-                add_res = subprocess.run([
-                    'sudo', 'nmcli', 'con', 'add', 'type', 'wifi', 'con-name', ssid, 'ifname', '*', 'ssid', ssid
-                ], capture_output=True, text=True)
-                log(f"Profile add result: {add_res.stdout.strip()}")
-                
-                subprocess.run(['sudo', 'nmcli', 'con', 'modify', ssid, 
-                               'wifi-security.key-mgmt', 'wpa-psk', 
-                               'wifi-security.psk', password], capture_output=True)
-                
-                log("Activating manually created profile...")
-                up_res = subprocess.run(['sudo', 'nmcli', 'con', 'up', ssid], capture_output=True, text=True)
-                log(f"Manual up exit code: {up_res.returncode}")
-                log(f"Manual up stdout: {up_res.stdout.strip()}")
-                log(f"Manual up stderr: {up_res.stderr.strip()}")
-                
-                if up_res.returncode == 0:
-                    log("Manual connection successful.")
-                    return jsonify({"status": "success", "message": f"Connected to {ssid}"})
-            
+        if result.returncode == 0:
+            log("Connection successful via wifi_setup.py.")
+            return jsonify({"status": "success", "message": f"Connected to {ssid}"})
+        else:
+            log(f"Connection failed via wifi_setup.py with code {result.returncode}")
             return jsonify({"error": f"Failed to connect: {result.stderr or result.stdout}"}), 500
 
-        log("Connection successful.")
-        return jsonify({"status": "success", "message": f"Connected to {ssid}"})
     except Exception as e:
         log(f"CRITICAL ERROR: {str(e)}")
         return jsonify({"error": str(e)}), 500
