@@ -90,7 +90,7 @@
                 history.forEach(item => {
                     const div = document.createElement('div');
                     div.className = 'history-item';
-                    div.onclick = () => selectImage(item.name, div);
+                    div.onclick = () => selectImage(item.name, div, item.path);
                     
                     const nameSpan = document.createElement('span');
                     nameSpan.textContent = item.name;
@@ -115,7 +115,7 @@
             }
         }
 
-        function selectImage(filename, element) {
+        function selectImage(filename, element, path) {
             selectedFilename = filename;
             
             // UI updates
@@ -124,7 +124,9 @@
             
             document.getElementById('preview-filename').textContent = filename;
             const img = document.getElementById('preview-img');
-            img.src = `${API_HOST}/api/image/${filename}`;
+            // Use path to fetch image. If path is unavailable, fall back to filename.
+            const imagePath = path || filename;
+            img.src = `${API_HOST}/api/image/${encodeURIComponent(imagePath)}`;
             img.style.display = 'block';
             document.getElementById('preview-controls').style.display = 'block';
             
