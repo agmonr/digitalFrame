@@ -23,28 +23,53 @@ socketio = SocketIO(app, cors_allowed_origins="*", async_mode='gevent')
 master_fd = None
 child_pid = None
 
+def is_child_alive():
+    global child_pid
+    if child_pid is None:
+        return False
+    try:
+        # Signal 0 checks if the process exists
+        os.kill(child_pid, 0)
+        return True
+    except OSError:
+        return False
+
 def set_winsize(fd, row, col, xpix=0, ypix=0):
     winsize = struct.pack("HHHH", row, col, xpix, ypix)
     fcntl.ioctl(fd, termios.TIOCSWINSZ, winsize)
 
 def read_and_forward_pty():
-    global master_fd
+    global master_fd, child_pid
     logger.debug("Starting PTY read loop (non-blocking)")
     while True:
         if master_fd:
             try:
+                # Check if child is still alive
+                if not is_child_alive():
+                    logger.info("Child process died, ending read loop")
+                    master_fd = None
+                    child_pid = None
+                    break
+
                 # Use gevent-compatible select to avoid blocking the event loop
                 r, _, _ = select([master_fd], [], [], 0.05)
                 if r:
-                    output = os.read(master_fd, 4096).decode('utf-8', 'replace')
-                    if output:
-                        socketio.emit("output", {"data": output}, namespace="/pty")
+                    try:
+                        output = os.read(master_fd, 4096).decode('utf-8', 'replace')
+                        if output:
+                            socketio.emit("output", {"data": output}, namespace="/pty")
+                    except (OSError, IOError) as e:
+                        logger.error(f"Read error (likely process exit): {e}")
+                        master_fd = None
+                        child_pid = None
+                        break
                 else:
                     # No data, yield control
                     socketio.sleep(0.01)
             except Exception as e:
-                logger.error(f"PTY Read error: {e}")
+                logger.error(f"PTY loop error: {e}")
                 master_fd = None
+                child_pid = None
                 break
         else:
             socketio.sleep(0.1)
@@ -54,6 +79,15 @@ def read_and_forward_pty():
 def on_connect():
     global master_fd, child_pid
     logger.debug("Client connected to /pty")
+    
+    # Cleanup if the previous process died
+    if master_fd is not None and not is_child_alive():
+        logger.info("Existing PTY found but child is dead. Cleaning up.")
+        try: os.close(master_fd)
+        except: pass
+        master_fd = None
+        child_pid = None
+
     if master_fd is None:
         # Create a new PTY
         master_fd, slave_fd = pty.openpty()
@@ -83,11 +117,12 @@ def on_connect():
         socketio.start_background_task(target=read_and_forward_pty)
     else:
         logger.debug("Reusing existing PTY")
+        # Send a newline to trigger a prompt if it's hidden
+        on_input({"input": "\n"})
 
 @socketio.on("input", namespace="/pty")
 def on_input(data):
     global master_fd
-    logger.debug(f"Received input from socket: {repr(data.get('input'))}")
     if master_fd:
         try:
             os.write(master_fd, data["input"].encode())

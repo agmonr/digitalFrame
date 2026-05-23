@@ -36,8 +36,17 @@ Built with a focus on **system integrity** and **smooth aesthetics**, DigitalFra
 
 ## ⚖️ Licensing & Credits
 
-DigitalFrame is primarily licensed under the MIT License. However, specific components carry their own licenses:
-- **Web Terminal:** The interactive terminal implementation leverages techniques and architectural patterns from the **Butterfly Web Terminal** (GPLv3). In accordance with the GPLv3, the terminal-specific code in this project is contributed to the community under the same terms.
+DigitalFrame is primarily licensed under the **MIT License**. However, this project leverages several high-quality open-source components:
+
+### Frontend & UI
+- **[Xterm.js](https://xtermjs.org/)** (MIT): Powers the high-performance web terminal.
+- **[Socket.io](https://socket.io/)** (MIT): Enables real-time, low-latency communication between the dashboard and the hardware.
+
+### System Components
+- **[Butterfly Web Terminal](https://github.com/paradoxxxzero/butterfly)** (GPLv3): The interactive terminal implementation leverages techniques and architectural patterns from this project. In accordance with the GPLv3, the terminal-specific code in this project is contributed to the community under the same terms.
+- **[OpenCV](https://opencv.org/)** (Apache 2.0): Used for real-time motion detection and image analysis.
+- **[Pillow (PIL)](https://python-pillow.org/)** (HPND): Primary image processing and rendering library.
+- **[Nginx](https://nginx.org/)** (BSD-like): Robust web server used as a reverse proxy for the dashboard and video feeds.
 
 ---
 
