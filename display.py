@@ -202,6 +202,16 @@ def load_fb_info():
         logger.error(f"Error reading framebuffer info: {e}")
         sys.exit(1)
 
+def is_ntp_synchronized():
+    try:
+        # Check if NTP service is active and synchronized
+        # timedatectl output format varies slightly, look for 'System clock synchronized: yes'
+        result = subprocess.run(['timedatectl', 'show', '--property=NTPSynchronized', '--value'], capture_output=True, text=True)
+        return result.stdout.strip() == 'yes'
+    except Exception as e:
+        logger.error(f"Error checking NTP status: {e}")
+        return False
+
 def draw_styled_text(draw, text, font, position, text_color, border_color, border_size, alpha=255):
     x, y = position
     
@@ -227,6 +237,9 @@ def draw_styled_text(draw, text, font, position, text_color, border_color, borde
     draw.text((x, y), text, font=font, fill=txt_rgba)
 
 def draw_time(image, format_str, font_size, location=None, color=None, border_color=None, border_size=None, alpha=None):
+    if not is_ntp_synchronized():
+        return # Time is not synced, skip drawing
+
     try:
         loc = location or TIME_LOCATION
         txt_col = color or TIME_COLOR
@@ -323,6 +336,9 @@ def display_image(fb, img_path, save=True):
     except Exception as e:
         logger.error(f"Error displaying {img_path}: {e}")
 def display_hourly_clock(fb, current_image=None, img_path=None):
+    if not is_ntp_synchronized():
+        return # Skip clock overlay if time is not synced
+        
     try:
         if current_image:
             bg = current_image.copy()
