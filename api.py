@@ -111,10 +111,12 @@ def motion_detection_thread():
     while True:
         try:
             config = get_config()
+            weak_machine = config.getboolean('DEFAULT', 'weak_machine', fallback=False)
+            
             # Check both MOTION and CAMERA enabled flags
             if not config.has_section('MOTION') or not config.getboolean('MOTION', 'enabled', fallback=False) or \
                not config.getboolean('CAMERA', 'enabled', fallback=True):
-                time.sleep(5)
+                time.sleep(30 if weak_machine else 5)
                 continue
 
             # Sync internal state with actual hardware state
@@ -191,7 +193,7 @@ def motion_detection_thread():
                     motion_data["screen_state"] = "off"
             
             # Sleep between checks
-            time.sleep(2)
+            time.sleep(30 if weak_machine else 2)
         except Exception as e:
             # pass
             pass # pass

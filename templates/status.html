@@ -10,6 +10,13 @@
         .card { background: #fff; padding: 20px; border-radius: 8px; border: 1px solid #ddd; margin-bottom: 20px; }
         .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; }
         .stat-value { font-size: 24px; font-weight: bold; color: #3498db; }
+        .config-card { background: #fff; padding: 20px; border-radius: 8px; border: 1px solid #ddd; margin-top: 20px; }
+        .switch { position: relative; display: inline-block; width: 60px; height: 34px; }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; transition: .4s; border-radius: 34px; }
+        .slider:before { position: absolute; content: ""; height: 26px; width: 26px; left: 4px; bottom: 4px; background-color: white; transition: .4s; border-radius: 50%; }
+        input:checked + .slider { background-color: #3498db; }
+        input:checked + .slider:before { transform: translateX(26px); }
         nav { margin-bottom: 20px; }
         nav a { margin-right: 20px; color: #3498db; text-decoration: none; font-weight: bold; }
     </style>
@@ -31,6 +38,20 @@
             </div>
         </div>
 
+        <div class="config-card">
+            <h3>Machine Optimization</h3>
+            <div style="display: flex; align-items: center; justify-content: space-between;">
+                <div>
+                    <strong>Weak Machine Mode</strong><br>
+                    <small>Limits updates to every 30 seconds to save CPU/Memory</small>
+                </div>
+                <label class="switch">
+                    <input type="checkbox" id="weak-machine-toggle" onchange="toggleWeakMachine()">
+                    <span class="slider"></span>
+                </label>
+            </div>
+        </div>
+
         <h3>Disk Usage</h3>
         <div id="disk-list" class="grid">
             <!-- Partitions will be injected here -->
@@ -38,6 +59,44 @@
     </div>
 
     <script>
+        let updateInterval = 5000;
+        let pollTimer = null;
+
+        async function fetchConfig() {
+            try {
+                const response = await fetch('/api/config');
+                const config = await response.json();
+                const weakMode = config.DEFAULT.weak_machine === 'True' || config.DEFAULT.weak_machine === true;
+                document.getElementById('weak-machine-toggle').checked = weakMode;
+                updateInterval = weakMode ? 30000 : 5000;
+                resetPolling();
+            } catch (e) {
+                console.error("Failed to fetch config", e);
+            }
+        }
+
+        async function toggleWeakMachine() {
+            const enabled = document.getElementById('weak-machine-toggle').checked;
+            try {
+                await fetch('/api/config', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        DEFAULT: { weak_machine: enabled }
+                    })
+                });
+                updateInterval = enabled ? 30000 : 5000;
+                resetPolling();
+            } catch (e) {
+                alert("Failed to update setting");
+            }
+        }
+
+        function resetPolling() {
+            if (pollTimer) clearInterval(pollTimer);
+            pollTimer = setInterval(fetchStatus, updateInterval);
+        }
+
         async function fetchStatus() {
             try {
                 const response = await fetch('/api/system/status');
@@ -63,7 +122,8 @@
                 console.error("Failed to fetch system status", e);
             }
         }
-        setInterval(fetchStatus, 5000);
+        
+        fetchConfig();
         fetchStatus();
     </script>
 </body>

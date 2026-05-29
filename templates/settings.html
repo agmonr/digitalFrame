@@ -65,6 +65,14 @@
                 <label>Group Size</label>
                 <input type="number" id="group-size">
             </div>
+            <div class="form-group">
+                <label>Weak Machine Mode</label>
+                <select id="weak-machine">
+                    <option value="True">Enabled</option>
+                    <option value="False">Disabled</option>
+                </select>
+                <div class="info-text">Limits updates to every 30 seconds to save CPU/Memory.</div>
+            </div>
 
             <h2>Clock Overlay</h2>
             <div class="form-group">
@@ -222,6 +230,7 @@
                 document.getElementById('image-dir').value = defaults.imagedir || '';
                 document.getElementById('interval').value = defaults.interval;
                 document.getElementById('group-size').value = defaults.groupsize;
+                document.getElementById('weak-machine').value = (defaults.weak_machine && defaults.weak_machine.toLowerCase() === 'true') ? 'True' : 'False';
                 document.getElementById('show-time').value = defaults.showtime.toLowerCase() === 'true' ? 'True' : 'False';
                 document.getElementById('periodic-clock').value = (defaults.showperiodicclock && defaults.showperiodicclock.toLowerCase() === 'true') ? 'True' : 'False';
                 document.getElementById('scheduled-clock').value = (defaults.showscheduledclock && defaults.showscheduledclock.toLowerCase() === 'true') ? 'True' : 'False';
@@ -260,6 +269,7 @@
                     imagedir: document.getElementById('image-dir').value,
                     interval: document.getElementById('interval').value,
                     groupsize: document.getElementById('group-size').value,
+                    weak_machine: document.getElementById('weak-machine').value,
                     showtime: document.getElementById('show-time').value,
                     showperiodicclock: document.getElementById('periodic-clock').value,
                     showscheduledclock: document.getElementById('scheduled-clock').value,

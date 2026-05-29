@@ -35,7 +35,7 @@ def get_config():
 def load_config_values():
     global IMAGE_DIR, INTERVAL, GROUP_SIZE, FB_DEV, COLOR_ORDER, LOG_LEVEL_STR, LOG_FILE
     global SHOW_TIME, TIME_FORMAT, TIME_FONT_SIZE, TIME_LOCATION, TIME_COLOR, TIME_BORDER_COLOR, TIME_BORDER_SIZE, NEG_TIME, TIME_ALPHA
-    global SHOW_HOURLY, SHOW_PERIODIC, SHOW_SCHEDULED, CLOCK_SCHEDULE_1, CLOCK_SCHEDULE_2, SCREEN_OFF_HOUR, SCREEN_ON_HOUR, SELECTED_FOLDERS
+    global SHOW_HOURLY, SHOW_PERIODIC, SHOW_SCHEDULED, CLOCK_SCHEDULE_1, CLOCK_SCHEDULE_2, SCREEN_OFF_HOUR, SCREEN_ON_HOUR, SELECTED_FOLDERS, WEAK_MACHINE
 
     config = configparser.ConfigParser()
     files_read = config.read('config.ini')
@@ -45,7 +45,11 @@ def load_config_values():
 
     IMAGE_DIR = config.get('DEFAULT', 'imagedir', fallback='/home/ram/background/')
     SELECTED_FOLDERS = config.get('DEFAULT', 'selected_folders', fallback='all')
+    WEAK_MACHINE = config.getboolean('DEFAULT', 'weak_machine', fallback=False)
     INTERVAL = config.getint('DEFAULT', 'interval', fallback=10)
+    if WEAK_MACHINE:
+        INTERVAL = max(INTERVAL, 30)
+    
     GROUP_SIZE = config.getint('DEFAULT', 'groupsize', fallback=10)
     FB_DEV = config.get('DEFAULT', 'framebufferdevice', fallback='/dev/fb0')
     COLOR_ORDER = config.get('DEFAULT', 'colororder', fallback='BGR').upper()
@@ -663,7 +667,8 @@ def main():
                 last_display_time = time.time()
                 last_minute = now.minute
             
-            time.sleep(1)
+            sleep_time = 30 if WEAK_MACHINE else 1
+            time.sleep(sleep_time)
 
 if __name__ == "__main__":
     main()

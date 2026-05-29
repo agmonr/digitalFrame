@@ -72,9 +72,21 @@
             }
         }
 
-        setInterval(updateImage, 2000);
+        async function initPolling() {
+            try {
+                const response = await fetch('/api/config');
+                const config = await response.json();
+                const weakMode = config.DEFAULT.weak_machine === 'True' || config.DEFAULT.weak_machine === true;
+                const interval = weakMode ? 30000 : 2000;
+                setInterval(updateImage, interval);
+            } catch (e) {
+                setInterval(updateImage, 2000);
+            }
+        }
+
         setInterval(updateClock, 60000);
         updateImage();
+        initPolling();
         requestAnimationFrame(animateBurnIn);
     </script>
 </body>

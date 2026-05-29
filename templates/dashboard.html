@@ -177,8 +177,27 @@
 
         updateStatus();
         updateScreenStatus();
-        setInterval(updateStatus, 2000);
-        setInterval(updateScreenStatus, 5000);
+
+        async function initPolling() {
+            try {
+                const response = await fetch('/api/config');
+                const config = await response.json();
+                const weakMode = config.DEFAULT.weak_machine === 'True' || config.DEFAULT.weak_machine === true;
+                const statusInterval = weakMode ? 30000 : 2000;
+                const screenInterval = weakMode ? 60000 : 5000;
+                
+                setInterval(updateStatus, statusInterval);
+                setInterval(updateScreenStatus, screenInterval);
+                
+                if (weakMode) {
+                    document.querySelector('.refresh-info').textContent = "Auto-refreshing every 30 seconds (Weak Machine Mode)";
+                }
+            } catch (e) {
+                setInterval(updateStatus, 2000);
+                setInterval(updateScreenStatus, 5000);
+            }
+        }
+        initPolling();
     </script>
 </body>
 </html>

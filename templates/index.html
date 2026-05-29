@@ -56,13 +56,26 @@
             const now = new Date();
             document.getElementById('datetime').innerText = now.toLocaleString();
         }
-        setInterval(updateDateTime, 1000);
         updateDateTime();
 
-        // Refresh the page every 60 seconds to update gallery
-        setInterval(function() {
-            window.location.reload();
-        }, 60000);
+        async function initIntervals() {
+            try {
+                const response = await fetch('/api/config');
+                const config = await response.json();
+                const weakMode = config.DEFAULT.weak_machine === 'True' || config.DEFAULT.weak_machine === true;
+                
+                setInterval(updateDateTime, weakMode ? 30000 : 1000);
+                
+                // Refresh the page every 60 seconds (or 5 mins if weak) to update gallery
+                setInterval(function() {
+                    window.location.reload();
+                }, weakMode ? 300000 : 60000);
+            } catch (e) {
+                setInterval(updateDateTime, 1000);
+                setInterval(function() { window.location.reload(); }, 60000);
+            }
+        }
+        initIntervals();
     </script>
     <div class="gallery">
         {% for image in images %}
