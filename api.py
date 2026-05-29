@@ -336,6 +336,20 @@ def update_motion_config():
 
 @app.route('/api/state', methods=['GET'])
 def get_state():
+    if not os.path.exists(STATE_FILE):
+        default_state = {
+            "type": "idle",
+            "current_image": "Idle",
+            "full_path": "",
+            "last_update": datetime.now().isoformat(),
+            "pid": 0
+        }
+        try:
+            with open(STATE_FILE, 'w') as f:
+                json.dump(default_state, f)
+        except Exception as e:
+            return jsonify({"error": f"Failed to create state file: {e}"}), 500
+
     if os.path.exists(STATE_FILE):
         try:
             with open(STATE_FILE, 'r') as f:
