@@ -28,6 +28,8 @@ logger = logging.getLogger(__name__)
 
 def get_config():
     config = configparser.ConfigParser()
+    if os.path.exists('config.ini.example'):
+        config.read('config.ini.example')
     config.read('config.ini')
     return config
 
@@ -38,10 +40,14 @@ def load_config_values():
     global SHOW_HOURLY, SHOW_PERIODIC, SHOW_SCHEDULED, CLOCK_SCHEDULE_1, CLOCK_SCHEDULE_2, SCREEN_OFF_HOUR, SCREEN_ON_HOUR, SELECTED_FOLDERS, WEAK_MACHINE
 
     config = configparser.ConfigParser()
+    # Load defaults from example file first
+    if os.path.exists('config.ini.example'):
+        config.read('config.ini.example')
+    
     files_read = config.read('config.ini')
-    if not files_read:
-        logger.error("Could not read config.ini!")
-        return os.path.getmtime('config.ini') if os.path.exists('config.ini') else 0
+    if not files_read and not os.path.exists('config.ini.example'):
+        logger.error("Could not read config.ini or config.ini.example!")
+        return 0
 
     IMAGE_DIR = config.get('DEFAULT', 'imagedir', fallback='/home/ram/background/')
     SELECTED_FOLDERS = config.get('DEFAULT', 'selected_folders', fallback='all')

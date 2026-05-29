@@ -27,6 +27,10 @@ REMOVE_DIR = '/home/ram/removed/'
 
 def get_config():
     config = configparser.ConfigParser(interpolation=None)
+    # Load defaults from example file first
+    if os.path.exists('config.ini.example'):
+        config.read('config.ini.example')
+    # Overlay with actual config
     config.read(CONFIG_FILE)
     return config
 
