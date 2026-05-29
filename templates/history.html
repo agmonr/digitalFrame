@@ -7,21 +7,20 @@
     <style>
         * { box-sizing: border-box; }
         body { font-family: sans-serif; background: #f4f7f6; margin: 0; padding: 20px; color: #333; }
-        .container { max-width: 1000px; margin: 0 auto; display: grid; grid-template-columns: 350px 1fr; gap: 20px; }
+        .container { max-width: 600px; margin: 0 auto; display: flex; flex-direction: column; gap: 20px; }
         
         @media (max-width: 850px) {
             body { padding: 10px; }
-            .container { grid-template-columns: 1fr; }
-            .history-list { height: 300px; margin-bottom: 20px; }
+            .history-list { height: 300px; }
             .preview-pane { width: 100%; }
             .img-preview { max-height: 50vh; }
             nav { display: flex; flex-wrap: wrap; gap: 5px; }
             nav a { margin-right: 10px; font-size: 14px; }
-            h1 { font-size: 22px; }
+            h1 { font-size: 20px; text-align: center; }
         }
         
-        .history-list { background: white; padding: 15px; border-radius: 12px; height: 80vh; overflow-y: auto; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
-        .preview-pane { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); text-align: center; }
+        .history-list { background: var(--card-bg); padding: 15px; border-radius: 8px; height: 300px; overflow-y: auto; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        .preview-pane { background: var(--card-bg); padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); text-align: center; }
         .history-item { padding: 12px; border-bottom: 1px solid #eee; cursor: pointer; display: flex; justify-content: space-between; align-items: center; }
         .history-item:hover { background: #f9f9f9; }
         .history-item.active { background: #e8f4f8; border-left: 4px solid #3498db; }
@@ -51,6 +50,7 @@
                 <div id="preview-filename" style="margin-bottom: 15px; font-weight: bold; word-break: break-all;">Select an image from the list</div>
                 <img id="preview-img" class="img-preview" src="" style="display: none;">
                 <div id="preview-controls" style="display: none;">
+                    <button class="show" onclick="showSelected()" style="background: #3498db; margin-bottom: 10px; width: 100%;">Show on Frame</button>
                     <button class="remove" onclick="removeSelected()">Remove Image</button>
                     <p style="font-size: 12px; color: #7f8c8d; margin-top: 10px;">This will move the image to /home/ram/removed/</p>
                 </div>
@@ -62,6 +62,38 @@
         const API_HOST = "http://" + window.location.hostname + ":5001";
         const API_BASE = API_HOST + "/api";
         let selectedFilename = null;
+        let selectedPath = null;
+
+        async function showSelected() {
+            if (!selectedFilename) return;
+
+            try {
+                const response = await fetch(`${API_HOST}/api/show`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ 
+                        path: selectedPath,
+                        filename: selectedFilename 
+                    })
+                });
+                if (response.ok) {
+                    // Visual feedback instead of alert
+                    const btn = document.querySelector('button.show');
+                    const oldText = btn.textContent;
+                    btn.textContent = "Displaying...";
+                    btn.style.background = "#2ecc71";
+                    setTimeout(() => {
+                        btn.textContent = oldText;
+                        btn.style.background = "#3498db";
+                    }, 2000);
+                } else {
+                    const data = await response.json();
+                    alert("Error: " + (data.error || "Failed to show image"));
+                }
+            } catch (e) {
+                console.error("Error showing image", e);
+            }
+        }
 
         async function checkCameraVisibility() {
             try {
@@ -117,6 +149,7 @@
 
         function selectImage(filename, element, path) {
             selectedFilename = filename;
+            selectedPath = path;
             
             // UI updates
             document.querySelectorAll('.history-item').forEach(i => i.classList.remove('active'));

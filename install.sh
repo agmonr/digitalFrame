@@ -28,9 +28,18 @@ pip install -r "$PROJECT_DIR/requirements.txt"
 
 # 2. Configure Nginx
 echo "Configuring Nginx..."
+# Update paths in nginx config to match current installation directory
+sed -i "s|/home/ram/photos/digitalframe|$PROJECT_DIR|g" "$PROJECT_DIR/digitalframe.nginx"
 cp "$PROJECT_DIR/digitalframe.nginx" /etc/nginx/sites-available/digitalframe
 ln -sf /etc/nginx/sites-available/digitalframe /etc/nginx/sites-enabled/
 rm -f /etc/nginx/sites-enabled/default
+
+# Ensure static directory and loading image exist for 502 page
+mkdir -p "$PROJECT_DIR/static"
+if [ ! -f "$PROJECT_DIR/static/loading.png" ] && [ -f "$PROJECT_DIR/images/IMG-20260521-WA0001.jpg" ]; then
+    cp "$PROJECT_DIR/images/IMG-20260521-WA0001.jpg" "$PROJECT_DIR/static/loading.png"
+fi
+
 nginx -t && systemctl restart nginx
 
 # 3. Setup Logging

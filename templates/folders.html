@@ -12,7 +12,25 @@
         nav a { margin-right: 20px; color: #3498db; text-decoration: none; font-weight: bold; }
         .folder-list { margin-top: 20px; }
         .folder-item { padding: 10px; border-bottom: 1px solid #eee; display: flex; align-items: center; }
+        .folder-item.hidden { display: none; }
         .folder-item input { margin-right: 15px; width: 20px; height: 20px; }
+        .toggle-btn { 
+            cursor: pointer; 
+            margin-right: 10px; 
+            width: 20px; 
+            height: 20px; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center;
+            background: #eee;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: bold;
+            user-select: none;
+        }
+        .toggle-btn:hover { background: #ddd; }
+        .toggle-btn.empty { visibility: hidden; }
+        .folder-name { flex-grow: 1; cursor: pointer; }
         .actions { margin-top: 30px; }
         button { padding: 10px 25px; background: #3498db; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 16px; }
         button:hover { background: #2980b9; }
@@ -43,6 +61,8 @@
     </div>
 
     <script>
+        const expandedFolders = new Set();
+
         async function loadFolders() {
             try {
                 const response = await fetch('/api/folders');
@@ -61,11 +81,36 @@
                 data.available_folders.forEach(folder => {
                     const item = document.createElement('div');
                     item.className = 'folder-item';
+                    item.dataset.path = folder;
                     
-                    // Indent based on depth
                     const depth = (folder.match(/\//g) || []).length;
                     item.style.paddingLeft = (10 + (depth * 25)) + 'px';
                     
+                    // Check if has children
+                    const hasChildren = data.available_folders.some(f => f.startsWith(folder + '/'));
+                    const parentPath = folder.includes('/') ? folder.substring(0, folder.lastIndexOf('/')) : '';
+                    item.dataset.parent = parentPath;
+
+                    // Hide if parent is not expanded
+                    if (parentPath && !expandedFolders.has(parentPath)) {
+                        item.classList.add('hidden');
+                    }
+
+                    const toggle = document.createElement('div');
+                    toggle.className = 'toggle-btn' + (hasChildren ? '' : ' empty');
+                    toggle.textContent = expandedFolders.has(folder) ? '−' : '+';
+                    toggle.onclick = (e) => {
+                        e.stopPropagation();
+                        if (expandedFolders.has(folder)) {
+                            expandedFolders.delete(folder);
+                            collapseSubfolders(folder);
+                        } else {
+                            expandedFolders.add(folder);
+                            expandSubfolders(folder);
+                        }
+                        loadFolders(); // Re-render to update visibility and icons
+                    };
+
                     const checkbox = document.createElement('input');
                     checkbox.type = 'checkbox';
                     checkbox.value = folder;
@@ -75,26 +120,43 @@
                     }
                     
                     const label = document.createElement('label');
+                    label.className = 'folder-name';
                     label.htmlFor = 'folder-' + folder;
-                    label.textContent = folder;
+                    // Show only the folder name, not full path
+                    label.textContent = folder.split('/').pop();
 
                     checkbox.addEventListener('change', (e) => {
                         const isChecked = e.target.checked;
-                        const parentPath = e.target.value;
+                        const path = e.target.value;
                         const allCheckboxes = document.querySelectorAll('#folder-list input[type="checkbox"]');
                         allCheckboxes.forEach(cb => {
-                            if (cb.value.startsWith(parentPath + '/')) {
+                            if (cb.value.startsWith(path + '/')) {
                                 cb.checked = isChecked;
                             }
                         });
                     });
                     
+                    item.appendChild(toggle);
                     item.appendChild(checkbox);
                     item.appendChild(label);
                     list.appendChild(item);
                 });
             } catch (err) {
+                console.error(err);
                 document.getElementById('folder-list').textContent = 'Error loading folders.';
+            }
+        }
+
+        function expandSubfolders(path) {
+            // Handled by re-rendering in loadFolders
+        }
+
+        function collapseSubfolders(path) {
+            // Remove all descendants from expandedFolders
+            for (const expanded of expandedFolders) {
+                if (expanded.startsWith(path + '/')) {
+                    expandedFolders.delete(expanded);
+                }
             }
         }
 
@@ -121,6 +183,8 @@
                 
                 if (!response.ok) {
                     alert('Error saving settings.');
+                } else {
+                    alert('Settings saved successfully! The frame will now restart.');
                 }
             } catch (err) {
                 alert('Connection error.');

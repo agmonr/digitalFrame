@@ -399,7 +399,7 @@ def get_folders():
     })
 
 @app.route('/api/folders', methods=['POST'])
-def update_folders():
+def save_folders():
     data = request.json
     selected = data.get('selected', 'all')
     
@@ -408,10 +408,40 @@ def update_folders():
     
     with open(CONFIG_FILE, 'w') as f:
         config.write(f)
+        
+    restart_frame()
+    return jsonify({"status": "success"})
+
+@app.route('/api/show', methods=['POST'])
+def show_image():
+    data = request.json
+    image_path = data.get('path')
     
-    # Trigger restart of display service to pick up new folder selection
-    restart_display_service()
-    
+    # If path is missing or invalid, try to treat 'path' as a filename and search for it
+    if not image_path or not os.path.exists(image_path):
+        filename = os.path.basename(image_path) if image_path else data.get('filename')
+        if not filename:
+            return jsonify({"error": "No image identifier provided"}), 400
+            
+        # Search for filename in IMAGE_DIR
+        config = get_config()
+        image_dir = config.get('DEFAULT', 'imagedir', fallback='/home/ram/photos/pictures/')
+        
+        found_path = None
+        for root, dirs, files in os.walk(image_dir):
+            if filename in files:
+                found_path = os.path.join(root, filename)
+                break
+        
+        if found_path:
+            image_path = found_path
+        else:
+            return jsonify({"error": f"Image {filename} not found in {image_dir}"}), 404
+
+    # Write to a trigger file that display.py monitors
+    with open("show_image.tmp", "w") as f:
+        f.write(image_path)
+
     return jsonify({"status": "success"})
 
 @app.route('/api/config', methods=['GET'])

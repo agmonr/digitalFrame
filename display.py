@@ -453,9 +453,10 @@ def main():
                 current_config_mtime = os.path.getmtime('config.ini')
                 if current_config_mtime > config_mtime:
                     old_image_dir = IMAGE_DIR
+                    old_selected = SELECTED_FOLDERS
                     config_mtime = load_config_values()
                     last_display_time = 0 # Force refresh on ANY config change
-                    if IMAGE_DIR != old_image_dir:
+                    if IMAGE_DIR != old_image_dir or SELECTED_FOLDERS != old_selected:
                         images = get_images()
                         images.sort(); idx = 0; images_shown_in_group = 0
                 
@@ -495,6 +496,21 @@ def main():
                 pass
 
             # Check for navigation commands (Move here for better responsiveness)
+            if os.path.exists("show_image.tmp"):
+                try:
+                    with open("show_image.tmp", "r") as f:
+                        show_path = f.read().strip()
+                    os.remove("show_image.tmp")
+                    logger.info(f"Manual 'Show' requested for: {show_path}")
+                    if show_path and os.path.exists(show_path):
+                        display_image(fb, show_path, save=True)
+                        last_display_time = time.time()
+                        idx = -1 # Next image will be images[0]
+                    else:
+                        logger.error(f"Manual 'Show' failed: Path not found {show_path}")
+                except Exception as e:
+                    logger.error(f"Error handling show_image.tmp: {e}")
+            
             if os.path.exists("next_image.tmp"):
                 os.remove("next_image.tmp")
                 manual_prev = False
