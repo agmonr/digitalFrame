@@ -412,6 +412,32 @@ def is_hour_in_range(hour, start, end):
         # Wrapped range (e.g., 22 to 07 where start > end)
         return hour >= start or hour < end
 
+def get_next_image_index(images, idx, images_shown_in_group):
+    if not images:
+        return 0, 0
+    
+    images_shown_in_group += 1
+    # If we've shown enough images in this group, pick a new random starting point
+    if images_shown_in_group >= GROUP_SIZE:
+        # Try up to 5 times to find an image not shown in the last 24 hours
+        recent_history = []
+        if os.path.exists(HISTORY_FILE):
+            try:
+                with open(HISTORY_FILE, "r") as f:
+                    full_history = json.load(f)
+                cutoff = datetime.now().timestamp() - 86400
+                recent_history = [e["name"] for e in full_history if datetime.fromisoformat(e["timestamp"]).timestamp() > cutoff]
+            except: pass
+
+        for _ in range(5):
+            new_idx = random.randint(0, len(images) - 1)
+            if os.path.basename(images[new_idx]) not in recent_history:
+                return new_idx, 0
+        return random.randint(0, len(images) - 1), 0
+    else:
+        # Otherwise, just cycle to the next image
+        return (idx + 1) % len(images), images_shown_in_group
+
 def main():
     logger.info("Starting Digital Frame service")
     # Initial state should respect schedule
@@ -587,8 +613,14 @@ def main():
                             is_scheduled = True; break
             
             if not was_blanked and ((SHOW_HOURLY and now.hour != last_hour) or is_periodic or is_scheduled):
+                # Check if it's time to rotate image during periodic clock
+                if (is_periodic or is_scheduled) and time.time() - last_display_time >= INTERVAL:
+                    idx, images_shown_in_group = get_next_image_index(images, idx, images_shown_in_group)
+                    last_display_time = time.time()
+                    current_image_obj = None # Force reload
+
                 # Ensure we have the current background image ready for the clock overlay
-                if now.minute != last_minute or 'current_image_obj' not in locals():
+                if now.minute != last_minute or 'current_image_obj' not in locals() or current_image_obj is None:
                     last_minute = now.minute
                     current_image_obj = None
                     if images and idx < len(images):
@@ -601,7 +633,9 @@ def main():
                             bg_img = Image.new("RGB", (WIDTH, HEIGHT), (0, 0, 0))
                             bg_img.paste(current_image_obj, ((WIDTH - new_width) // 2, (HEIGHT - new_height) // 2))
                             current_image_obj = bg_img
-                        except: current_image_obj = None
+                        except Exception as e:
+                            logger.error(f"Error preparing background for clock: {e}")
+                            current_image_obj = None
 
                 if now.hour != last_hour:
                     last_hour = now.hour
@@ -635,30 +669,7 @@ def main():
                         manual_prev = False
                         images_shown_in_group = 0
                     else:
-                        images_shown_in_group += 1
-                        # If we've shown enough images in this group, pick a new random starting point
-                        if images_shown_in_group >= GROUP_SIZE:
-                            # Try up to 5 times to find an image not shown in the last 24 hours
-                            recent_history = []
-                            if os.path.exists(HISTORY_FILE):
-                                try:
-                                    with open(HISTORY_FILE, "r") as f:
-                                        full_history = json.load(f)
-                                    cutoff = datetime.now().timestamp() - 86400
-                                    recent_history = [e["name"] for e in full_history if datetime.fromisoformat(e["timestamp"]).timestamp() > cutoff]
-                                except: pass
-
-                            for _ in range(5):
-                                new_idx = random.randint(0, len(images) - 1)
-                                if os.path.basename(images[new_idx]) not in recent_history:
-                                    idx = new_idx
-                                    break
-                                idx = new_idx # Fallback to the last tried if all 5 are recent
-                            
-                            images_shown_in_group = 0
-                        else:
-                            # Otherwise, just cycle to the next image
-                            idx = (idx + 1) % len(images)
+                        idx, images_shown_in_group = get_next_image_index(images, idx, images_shown_in_group)
                 else:
                     idx = 0
             elif last_display_time == 0:

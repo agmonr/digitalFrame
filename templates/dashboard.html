@@ -27,7 +27,19 @@
         }
         h1 { margin-top: 0; color: #2c3e50; text-align: center; }
         .status-card { background: #e8f4f8; padding: 20px; border-radius: 8px; margin-bottom: 25px; border-left: 5px solid #3498db; text-align: center; }
-        .current-image { width: 100%; max-height: 400px; object-fit: contain; background: #000; border-radius: 8px; margin-top: 15px; }
+        .preview-container { position: relative; width: 100%; max-height: 400px; margin-top: 15px; background: #000; border-radius: 8px; overflow: hidden; display: flex; align-items: center; justify-content: center; }
+        .current-image { width: 100%; max-height: 400px; object-fit: contain; }
+        .clock-overlay { 
+            position: absolute; 
+            color: white; 
+            font-family: sans-serif; 
+            font-size: 32px; 
+            font-weight: bold; 
+            text-shadow: 1px 1px 3px rgba(0,0,0,0.8), -1px -1px 3px rgba(0,0,0,0.8);
+            pointer-events: none;
+            display: none;
+            z-index: 5;
+        }
         .action-section { margin-top: 30px; }
         .action-group { margin-bottom: 20px; }
         .action-group label { display: block; margin-bottom: 10px; font-weight: bold; }
@@ -62,7 +74,10 @@
         <div class="status-card">
             <h3>Current State</h3>
             <div id="display-info" style="font-size: 18px; margin-bottom: 10px;">Loading...</div>
-            <img id="display-preview" class="current-image" src="" alt="Current Display" style="display: none;">
+            <div class="preview-container">
+                <img id="display-preview" class="current-image" src="" alt="Current Display" style="display: none;">
+                <div id="clock-overlay" class="clock-overlay"></div>
+            </div>
             <div style="margin-top: 15px;">
                 <a id="full-image-link" href="/current" target="_blank" style="color: #3498db; text-decoration: none; font-weight: bold; display: none;">Open Full Screen Viewer &rarr;</a>
             </div>
@@ -92,6 +107,13 @@
 
     <script>
         const API_BASE = "/api";
+        let showTimeAlways = false;
+
+        function updateClock() {
+            const now = new Date();
+            const clock = document.getElementById('clock-overlay');
+            clock.innerText = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        }
 
         async function updateScreenStatus() {
             try {
@@ -137,13 +159,22 @@
                 
                 const info = document.getElementById('display-info');
                 const preview = document.getElementById('display-preview');
+                const clockOverlay = document.getElementById('clock-overlay');
                 const link = document.getElementById('full-image-link');
 
                 if (state.error) {
                     info.textContent = "System Status: " + state.error;
                     preview.style.display = "none";
+                    clockOverlay.style.display = "none";
                     link.style.display = "none";
                     return;
+                }
+
+                if (state.type === "clock" || showTimeAlways) {
+                    updateClock();
+                    clockOverlay.style.display = "block";
+                } else {
+                    clockOverlay.style.display = "none";
                 }
 
                 if (state.current_image && state.current_image !== "Clock" && state.current_image !== "Idle") {
@@ -183,6 +214,8 @@
                 const response = await fetch('/api/config');
                 const config = await response.json();
                 const weakMode = config.DEFAULT.weak_machine === 'True' || config.DEFAULT.weak_machine === true;
+                showTimeAlways = config.DEFAULT.showtime === 'True' || config.DEFAULT.showtime === true;
+
                 const statusInterval = weakMode ? 30000 : 2000;
                 const screenInterval = weakMode ? 60000 : 5000;
                 
