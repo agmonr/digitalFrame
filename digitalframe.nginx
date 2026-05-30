@@ -2,7 +2,7 @@ server {
     listen 80;
     server_name _;
 
-    error_page 502 /502.html;
+    error_page 502 503 504 /502.html;
 
     location = /502.html {
         root /home/ram/photos/digitalframe/static;
