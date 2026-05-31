@@ -476,6 +476,7 @@ def main():
     last_hour = now.hour
     last_minute = -1
     last_display_time = 0
+    last_rotation_time = 0
     config_mtime = last_config_mtime
     dir_mtime = os.path.getmtime(IMAGE_DIR)
     was_periodic = False
@@ -492,6 +493,7 @@ def main():
                     old_selected = SELECTED_FOLDERS
                     config_mtime = load_config_values()
                     last_display_time = 0 # Force refresh on ANY config change
+                    last_rotation_time = 0
                     if IMAGE_DIR != old_image_dir or SELECTED_FOLDERS != old_selected:
                         images = get_images()
                         images.sort(); idx = 0; images_shown_in_group = 0
@@ -541,6 +543,7 @@ def main():
                     if show_path and os.path.exists(show_path):
                         display_image(fb, show_path, save=True)
                         last_display_time = time.time()
+                        last_rotation_time = time.time()
                         idx = -1 # Next image will be images[0]
                     else:
                         logger.error(f"Manual 'Show' failed: Path not found {show_path}")
@@ -554,6 +557,7 @@ def main():
                     idx = (idx + 1) % len(images)
                     display_image(fb, images[idx], save=True)
                     last_display_time = time.time()
+                    last_rotation_time = time.time()
             elif os.path.exists("prev_image.tmp"):
                 os.remove("prev_image.tmp")
                 manual_prev = True
@@ -585,6 +589,7 @@ def main():
                     
                     display_image(fb, images[idx], save=False)
                     last_display_time = time.time()
+                    last_rotation_time = time.time()
 
             # 2. Hardware state sync (only if not already blanked by schedule)
             try:
@@ -614,8 +619,9 @@ def main():
             
             if not was_blanked and ((SHOW_HOURLY and now.hour != last_hour) or is_periodic or is_scheduled):
                 # Check if it's time to rotate image during periodic clock
-                if (is_periodic or is_scheduled) and time.time() - last_display_time >= INTERVAL:
+                if (is_periodic or is_scheduled) and time.time() - last_rotation_time >= INTERVAL:
                     idx, images_shown_in_group = get_next_image_index(images, idx, images_shown_in_group)
+                    last_rotation_time = time.time()
                     last_display_time = time.time()
                     current_image_obj = None # Force reload
 
@@ -645,7 +651,8 @@ def main():
                     while time.time() - start_time < 10:
                         display_hourly_clock(fb, current_image_obj, images[idx] if images and idx < len(images) else None)
                         time.sleep(0.05)
-                    last_display_time = 0 # Force image refresh after 10s clock
+                    last_display_time = time.time() # Update display time
+                    last_rotation_time = time.time() # Reset rotation time after hourly clock too
                     continue
 
                 if is_periodic or is_scheduled:
@@ -659,7 +666,7 @@ def main():
             if was_periodic:
                 should_refresh = True
                 was_periodic = False
-            elif time.time() - last_display_time >= INTERVAL:
+            elif time.time() - last_rotation_time >= INTERVAL:
                 # Time for NEXT image
                 should_refresh = True
                 if images:
@@ -672,9 +679,11 @@ def main():
                         idx, images_shown_in_group = get_next_image_index(images, idx, images_shown_in_group)
                 else:
                     idx = 0
+                last_rotation_time = time.time()
             elif last_display_time == 0:
                 # Forced refresh (config change or screen ON)
                 should_refresh = True
+                last_rotation_time = time.time()
             elif SHOW_TIME and now.minute != last_minute:
                 # Just refresh SAME image for clock update
                 should_refresh = True
