@@ -25,22 +25,22 @@
             box-shadow: 0 4px 15px rgba(0,0,0,0.1); 
             box-sizing: border-box;
         }
-        h1 { margin-top: 0; color: #2c3e50; text-align: center; }
-        .status-card { background: #e8f4f8; padding: 20px; border-radius: 8px; margin-bottom: 25px; border-left: 5px solid #3498db; text-align: center; }
+        h1 { margin-top: 0; color: #2c3e50; text-align: center; font-size: 24px; }
+        .status-card { background: #e8f4f8; padding: 15px; border-radius: 8px; margin-bottom: 25px; border-left: 5px solid #3498db; text-align: center; }
         .current-image { width: 100%; max-height: 400px; object-fit: contain; background: #000; border-radius: 8px; margin-top: 15px; }
         .action-section { margin-top: 30px; }
         .action-group { margin-bottom: 20px; }
-        .action-group label { display: block; margin-bottom: 10px; font-weight: bold; }
+        .action-group label { display: block; margin-bottom: 10px; font-weight: bold; font-size: 14px; }
         .btn-row { display: flex; gap: 10px; }
         button { 
             flex: 1;
             background: #3498db; 
             color: white; 
             border: none; 
-            padding: 12px 15px; 
+            padding: 10px 8px; 
             border-radius: 4px; 
             cursor: pointer; 
-            font-size: 16px;
+            font-size: 14px;
             font-weight: bold;
             transition: background 0.2s;
         }
@@ -51,17 +51,25 @@
         button.btn-off:hover { background: #7f8c8d; }
         button.restart { background: #e74c3c; margin-top: 20px; width: 100%; }
         button.restart:hover { background: #c0392b; }
-        .refresh-info { font-size: 12px; color: #7f8c8d; margin-top: 10px; }
+        .refresh-info { font-size: 11px; color: #7f8c8d; margin-top: 10px; }
+
+        @media (max-width: 480px) {
+            .container { padding: 15px; width: 98%; }
+            h1 { font-size: 20px; }
+            #display-info { font-size: 14px !important; }
+            button { font-size: 13px; padding: 8px 5px; }
+            .status-card h3 { font-size: 16px; }
+        }
     </style>
 </head>
 <body>
     {% include "nav.html" %}
     <div class="container">
-        <h1>Digital Frame Dashboard</h1>
+        <h1>Dashboard</h1>
         
         <div class="status-card">
             <h3>Current State</h3>
-            <div id="display-info" style="font-size: 18px; margin-bottom: 10px;">Loading...</div>
+            <div id="display-info" style="font-size: 16px; margin-bottom: 10px; word-break: break-all;">Loading...</div>
             <img id="display-preview" class="current-image" src="" alt="Current Display" style="display: none;">
             <div style="margin-top: 15px;">
                 <a id="full-image-link" href="/current" target="_blank" style="color: #3498db; text-decoration: none; font-weight: bold; display: none;">Open Full Screen Viewer &rarr;</a>
