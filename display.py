@@ -136,9 +136,20 @@ def notify_api_screen_state(on):
 
 def update_state(type="image", img_path=None):
     try:
+        # Determine current image display name (relative path if possible)
+        current_img = "Idle"
+        if img_path:
+            try:
+                # Use relative path from IMAGE_DIR so API can find it exactly
+                current_img = os.path.relpath(img_path, IMAGE_DIR)
+            except:
+                current_img = os.path.basename(img_path)
+        elif type == "clock":
+            current_img = "Clock"
+
         state = {
             "type": type,
-            "current_image": os.path.basename(img_path) if img_path else ("Clock" if type == "clock" else "Idle"),
+            "current_image": current_img,
             "full_path": img_path if img_path else "",
             "last_update": datetime.now().isoformat(),
             "pid": os.getpid()
@@ -155,7 +166,17 @@ def update_history(img_path, save=True):
         return
     try:
         now = datetime.now()
-        entry = {"name": os.path.basename(img_path), "timestamp": now.isoformat()}
+        rel_path = os.path.basename(img_path)
+        try:
+            rel_path = os.path.relpath(img_path, IMAGE_DIR)
+        except:
+            pass
+            
+        entry = {
+            "name": os.path.basename(img_path), 
+            "path": rel_path,
+            "timestamp": now.isoformat()
+        }
         history = []
         if os.path.exists(HISTORY_FILE):
             with open(HISTORY_FILE, "r") as f:

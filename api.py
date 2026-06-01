@@ -520,11 +520,18 @@ def prev_image():
 def fullscreen_view():
     return render_template('full_screen.html')
 
-@app.route('/api/image/<filename>')
+@app.route('/api/image/<path:filename>')
 def serve_image(filename):
     config = get_config()
-    image_dir = config.get('DEFAULT', 'ImageDir', fallback='/home/ram/photos/pictures/')
+    image_dir = config.get('DEFAULT', 'imagedir', fallback='/home/ram/photos/pictures/')
     remove_dir = config.get('DEFAULT', 'removedir', fallback='/home/ram/removed/')
+    
+    # Try direct path first (if it's a relative path from imagedir)
+    full_path = os.path.join(image_dir, filename)
+    if os.path.exists(full_path) and os.path.isfile(full_path):
+        return send_from_directory(os.path.dirname(full_path), os.path.basename(full_path))
+        
+    # Fallback to searching (for backward compatibility or if only filename is provided)
     paths = [image_dir, remove_dir]
     for p in paths:
         for root, dirs, files in os.walk(p):
