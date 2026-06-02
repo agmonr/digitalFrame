@@ -389,9 +389,43 @@ def remove_image():
             
     if src and os.path.exists(src):
         try:
+            # Check if this is the currently displayed image
+            is_current = False
+            if os.path.exists(STATE_FILE):
+                try:
+                    with open(STATE_FILE, 'r') as f:
+                        state = json.load(f)
+                        current_image = state.get('current_image', '')
+                        if filename == os.path.basename(current_image) or filename == current_image:
+                            is_current = True
+                except:
+                    pass
+
+            # Remove from history.json
+            if os.path.exists(HISTORY_FILE):
+                try:
+                    with open(HISTORY_FILE, 'r') as f:
+                        history = json.load(f)
+                    
+                    # Remove all entries with this filename
+                    new_history = [item for item in history if item.get('name') != filename]
+                    
+                    if len(new_history) != len(history):
+                        with open(HISTORY_FILE, 'w') as f:
+                            json.dump(new_history, f)
+                except Exception as e:
+                    logging.error(f"Error updating history after removal: {e}")
+
+            # Move the file
             os.makedirs(remove_dir, exist_ok=True)
             dst = os.path.join(remove_dir, filename)
             shutil.move(src, dst)
+
+            # If it was the current image, trigger next
+            if is_current:
+                with open("next_image.tmp", "w") as f:
+                    f.write("next")
+
             return jsonify({"status": "success", "message": f"Moved {filename} to {remove_dir}"})
         except Exception as e:
             return jsonify({"error": str(e)}), 500
