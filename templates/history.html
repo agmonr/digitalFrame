@@ -20,7 +20,9 @@
 
         /* Master List */
         .history-list { 
-            flex: 0 0 380px;
+            width: fit-content;
+            min-width: 260px;
+            max-width: 420px;
             background: var(--card-bg, #fff); 
             padding: 10px; 
             border-radius: 12px; 
@@ -100,7 +102,10 @@
             color: white; 
             font-weight: 600; 
             width: 100%; 
+            max-width: 300px; /* Limit button length */
             transition: opacity 0.2s;
+            display: block;
+            margin: 0 auto;
         }
         button:active { opacity: 0.8; }
         button.show { background: #3498db; margin-bottom: 10px; }
@@ -166,8 +171,8 @@
                 display: flex;
                 gap: 8px;
             }
-            button.show { flex: 2; padding: 10px; font-size: 14px; margin-bottom: 0; }
-            button.remove { flex: 1; padding: 10px 5px; font-size: 12px; }
+            button.show { flex: 2; padding: 10px; font-size: 14px; margin-bottom: 0; max-width: none; }
+            button.remove { flex: 1; padding: 10px 5px; font-size: 12px; max-width: none; }
             #preview-filename { font-size: 11px; margin-bottom: 5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         }
         </style>
