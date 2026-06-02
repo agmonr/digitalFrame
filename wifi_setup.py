@@ -8,6 +8,7 @@ import argparse
 NM_CONF_DIR = "/etc/NetworkManager/system-connections/"
 BACKUP_DIR = "/tmp/nm_backup"
 FAILED_DIR = "/tmp/failed_wifi_configs"
+FLAG_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), '.wifi_configured')
 
 def run_command(cmd, check=False, shell=False):
     try:
@@ -117,6 +118,8 @@ def connect_to_wifi(ssid, password):
     ap_name, _ = get_config_network()
     if is_wifi_connected(ap_name):
         print("Connection successful.")
+        with open(FLAG_FILE, 'w') as f:
+            f.write('configured')
         return True
     else:
         print("Not automatically connected. Trying manual up...")
@@ -124,6 +127,8 @@ def connect_to_wifi(ssid, password):
         
         if not isinstance(res_up, Exception) and res_up.returncode == 0:
             print("Manual connection successful.")
+            with open(FLAG_FILE, 'w') as f:
+                f.write('configured')
             return True
         else:
             error_msg = res_up.stderr if not isinstance(res_up, Exception) else str(res_up)
@@ -199,6 +204,10 @@ def setup_adhoc():
         return
 
     ap_name, ap_password = get_config_network()
+    
+    if os.path.exists(FLAG_FILE):
+        print("Flag file exists. Skipping AP setup.")
+        return
     
     if is_wifi_connected(ap_name):
         print("Wifi already connected. Skipping AP setup.")

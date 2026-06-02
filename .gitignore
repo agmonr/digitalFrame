@@ -5,3 +5,4 @@ logs/*
 config.ini
 __pycache__/
 venv/*
+.wifi_configured
