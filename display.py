@@ -14,7 +14,7 @@ import urllib.request
 from datetime import datetime
 from croniter import croniter
 import numpy as np
-from PIL import Image, ImageDraw, ImageFont, ImageChops
+from PIL import Image, ImageDraw, ImageFont, ImageChops, ImageOps
 import math
 
 # Setup Logging
@@ -353,6 +353,7 @@ def write_to_fb(fb, bg):
 def display_image(fb, img_path, save=True):
     try:
         img = Image.open(img_path)
+        img = ImageOps.exif_transpose(img)
         img_width, img_height = img.size
         scale = min(WIDTH / img_width, HEIGHT / img_height)
         new_width, new_height = int(img_width * scale), int(img_height * scale)
@@ -653,6 +654,7 @@ def main():
                     if images and idx < len(images):
                         try:
                             current_image_obj = Image.open(images[idx])
+                            current_image_obj = ImageOps.exif_transpose(current_image_obj)
                             img_width, img_height = current_image_obj.size
                             scale = min(WIDTH / img_width, HEIGHT / img_height)
                             new_width, new_height = int(img_width * scale), int(img_height * scale)
