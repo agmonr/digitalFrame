@@ -20,16 +20,18 @@ template_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), 'template
 app = Flask(__name__, template_folder=template_dir)
 CORS(app)
 
-CONFIG_FILE = 'config.ini'
-STATE_FILE = 'state.json'
-HISTORY_FILE = 'history.json'
-REMOVE_DIR = '/home/ram/removed/'
+PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
+CONFIG_FILE = os.path.join(PROJECT_ROOT, 'config.ini')
+STATE_FILE = os.path.join(PROJECT_ROOT, 'state.json')
+HISTORY_FILE = os.path.join(PROJECT_ROOT, 'history.json')
+REMOVE_DIR = os.path.join(PROJECT_ROOT, 'removed/')
 
 def get_config():
     config = configparser.ConfigParser(interpolation=None)
     # Load defaults from example file first
-    if os.path.exists('config.ini.example'):
-        config.read('config.ini.example')
+    example_config = os.path.join(PROJECT_ROOT, 'config.ini.example')
+    if os.path.exists(example_config):
+        config.read(example_config)
     # Overlay with actual config
     config.read(CONFIG_FILE)
     return config
@@ -110,8 +112,6 @@ def get_hardware_screen_state():
     return 'on'
 
 def motion_detection_thread():
-    # pass
-    pass # pass
     while True:
         try:
             config = get_config()
@@ -180,8 +180,6 @@ def motion_detection_thread():
                         if change_percent > 0.5:
                             motion_data["last_movement_time"] = time.time()
                             if current_state == "off":
-                                # pass
-                                pass # pass
                                 set_screen_state(True)
                                 motion_data["screen_state"] = "on"
                                 restart_display_service()
@@ -191,22 +189,16 @@ def motion_detection_thread():
             # Check for timeout
             if time.time() - motion_data["last_movement_time"] > timeout:
                 if current_state == "on":
-                    # pass
-                    pass # pass
                     set_screen_state(False)
                     motion_data["screen_state"] = "off"
             
             # Sleep between checks
             time.sleep(30 if weak_machine else 2)
         except Exception as e:
-            # pass
-            pass # pass
             time.sleep(10)
 
 # Camera Scheduling Thread
 def camera_scheduler_thread():
-    # pass
-    pass # pass
     while True:
         try:
             config = get_config()
@@ -233,20 +225,16 @@ def camera_scheduler_thread():
             else:
                 time.sleep(60)
         except Exception as e:
-            # pass
-            pass # pass
             time.sleep(60)
 
 def capture_image():
     with camera_lock:
-        # pass
-        pass # pass
         # Generate filename with timestamp
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         filename = f"capture_{timestamp}.jpg"
         
         config = get_config()
-        image_dir = config.get('CAMERA', 'imagedir_captures', fallback='/home/ram/photos/captures/')
+        image_dir = config.get('CAMERA', 'imagedir_captures', fallback=os.path.join(PROJECT_ROOT, 'captures/'))
         os.makedirs(image_dir, exist_ok=True)
         filepath = os.path.join(image_dir, filename)
         
@@ -257,11 +245,8 @@ def capture_image():
             
         try:
             subprocess.run(cmd, check=True)
-            # pass
-            pass # pass
         except Exception as e:
-            # pass
-            pass # pass
+            pass
 
 # Google Photos Sync Thread
 def google_photos_sync_thread():
@@ -378,8 +363,8 @@ def remove_image():
         return jsonify({"error": "No filename provided"}), 400
     
     config = get_config()
-    image_dir = config.get('DEFAULT', 'imagedir', fallback='/home/ram/photos/pictures/')
-    remove_dir = config.get('DEFAULT', 'removedir', fallback='/home/ram/removed/')
+    image_dir = config.get('DEFAULT', 'imagedir', fallback=os.path.join(PROJECT_ROOT, 'images/'))
+    remove_dir = config.get('DEFAULT', 'removedir', fallback=REMOVE_DIR)
     
     src = None
     for root, dirs, files in os.walk(image_dir):
@@ -434,7 +419,7 @@ def remove_image():
 @app.route('/api/folders', methods=['GET'])
 def get_folders():
     config = get_config()
-    image_dir = config.get('DEFAULT', 'imagedir', fallback='/home/ram/photos/pictures/')
+    image_dir = config.get('DEFAULT', 'imagedir', fallback=os.path.join(PROJECT_ROOT, 'images/'))
     selected = config.get('DEFAULT', 'selected_folders', fallback='all')
     
     folders = []
@@ -479,7 +464,7 @@ def show_image():
             
         # Search for filename in IMAGE_DIR
         config = get_config()
-        image_dir = config.get('DEFAULT', 'imagedir', fallback='/home/ram/photos/pictures/')
+        image_dir = config.get('DEFAULT', 'imagedir', fallback=os.path.join(PROJECT_ROOT, 'images/'))
         
         found_path = None
         for root, dirs, files in os.walk(image_dir):
@@ -530,8 +515,7 @@ def _restart_frame_process():
         time.sleep(0.5) # Give the API a moment to respond
         subprocess.run(['sudo', 'systemctl', 'restart', 'frame'], check=True)
     except Exception as e:
-        # pass
-        pass # pass
+        pass
 
 @app.route('/api/restart', methods=['POST'])
 def restart_frame():
@@ -557,8 +541,8 @@ def fullscreen_view():
 @app.route('/api/image/<path:filename>')
 def serve_image(filename):
     config = get_config()
-    image_dir = config.get('DEFAULT', 'imagedir', fallback='/home/ram/photos/pictures/')
-    remove_dir = config.get('DEFAULT', 'removedir', fallback='/home/ram/removed/')
+    image_dir = config.get('DEFAULT', 'imagedir', fallback=os.path.join(PROJECT_ROOT, 'images/'))
+    remove_dir = config.get('DEFAULT', 'removedir', fallback=REMOVE_DIR)
     
     # Try direct path first (if it's a relative path from imagedir)
     full_path = os.path.join(image_dir, filename)
@@ -579,8 +563,7 @@ def _restart_frame_task():
     try:
         subprocess.run(['sudo', 'systemctl', 'restart', 'frame'], check=False)
     except Exception as e:
-        # pass
-        pass # pass
+        pass
 
 def restart_display_service():
     """Helper to initiate a restart of the frame service."""

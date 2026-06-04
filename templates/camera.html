@@ -77,7 +77,7 @@
             </div>
             <div class="form-group">
                 <label for="capture-folder">Capture Folder:</label>
-                <input type="text" id="capture-folder" placeholder="/home/ram/photos/captures/">
+                <input type="text" id="capture-folder" placeholder="captures/">
             </div>
             <div class="form-group">
             </div>
@@ -118,7 +118,7 @@
                     const configRes = await fetch('/api/config');
                     const config = await configRes.json();
                     document.getElementById('capture-schedule').value = (config.CAMERA && config.CAMERA.schedule) || '';
-                    document.getElementById('capture-folder').value = (config.CAMERA && config.CAMERA.imagedir_captures) || '/home/ram/photos/captures/';
+                    document.getElementById('capture-folder').value = (config.CAMERA && config.CAMERA.imagedir_captures) || 'captures/';
                 }
                 document.getElementById('current-sensitivity').innerText = data.effective_sensitivity;
                 const statusBadge = document.getElementById('screen-status');

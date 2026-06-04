@@ -8,7 +8,8 @@ app = Flask(__name__)
 # Load configuration
 config = configparser.ConfigParser()
 config.read('config.ini')
-IMAGE_DIR = config.get('DEFAULT', 'ImageDir', fallback='/home/ram/background/')
+PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
+IMAGE_DIR = config.get('DEFAULT', 'ImageDir', fallback=os.path.join(PROJECT_ROOT, 'images/'))
 HISTORY_FILE = 'history.json'
 
 def get_images():

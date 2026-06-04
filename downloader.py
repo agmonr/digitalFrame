@@ -47,7 +47,8 @@ def download_album(album_id, url, output_dir):
     logger.debug(f"Starting sync for album: {album_id} ({url})")
     try:
         if not os.path.isabs(output_dir):
-            base_dir = "/home/ram/photos/pictures/"
+            # Use project-local images directory as base
+            base_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "images")
             output_dir = os.path.join(base_dir, output_dir)
             
         os.makedirs(output_dir, exist_ok=True)

@@ -1,5 +1,5 @@
 [DEFAULT]
-imagedir = /home/Photos/
+imagedir = images/
 interval = 60
 group_size = 20
 framebufferdevice = /dev/fb0
@@ -41,7 +41,7 @@ enabled = False
 enabled = False
 video_resolution = 1024x768
 schedule = 0 0-6 * * *
-imagedir_captures = /home/captures/
+imagedir_captures = captures/
 
 [NETWORK]
 ap_name = dframe

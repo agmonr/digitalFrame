@@ -5,12 +5,12 @@ server {
     error_page 502 503 504 /502.html;
 
     location = /502.html {
-        root /home/ram/photos/digitalframe/static;
+        root /home/ram/digitalFrame/static;
         internal;
     }
 
     location /static/ {
-        alias /home/ram/photos/digitalframe/static/;
+        alias /home/ram/digitalFrame/static/;
     }
 
     location /api/ {
